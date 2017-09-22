@@ -1,0 +1,90 @@
+// Register a cloud svc license agreement
+<sig> <LicAgrmntPayerPubKey> --> DUP HASH160 <LicAgrmntProviderPubKHash?> EQUALVERIFY CHECKSIG OP_REG LicHash "agrmnt/cloud_svc_agrmnt" "meta_data" OP_2DROP EQUALVERIFY OP_DROP
+
+// Register a license key without numeric tokens
+<sig> <LicRegPayerPubKey> --> OP_REG LicKeyHash "lic/cloud_svc_key" "meta_data" OP_2DROP EQUALVERIFY OP_DROP // not numeric token
+                          --> DUP HASH160 <PayForLicRegKeyHash> EQUALVERIFY CHECKSIG // numeric token
+
+// Redemption script
+<LicKeyHash> <sig> <LicPubKey> DUP HASH160 <LicKeyHash> EQUALVERIFY CHECKSIG OP_REG LicKeyHash "lic/cloud_svc_key" "meta_data" OP_2DROP EQUALVERIFY OP_DROP
+<LicKeyHash> <sig> <LicPubKey> --> OP_SIG <LICHASH> EQUALVERIFY OP_DROP
+
+
+// Register a license key, new opcode scheme
+<sig> <LicRegPayerPubKey> --> DUP HASH160 <LicKeyHash> EQUALVERIFY CHECKSIG <LicKeyHash> "lic/cloud_svc_key" "meta_data" OP_REG EQUAL
+// Update the license key
+<LicKeyHash> <sig> <LicPubKey> --> DUP HASH160 <LicKeyHash> EQUALVERIFY CHECKSIG <LicKeyHash> "lic/cloud_svc_key_new_name" "new_meta_data" OP_REG_UPDATE EQUAL
+// Dereg the license key
+<LicKeyHash> <sig> <LicPubKey> --> DUP HASH160 <LicKeyHash> EQUALVERIFY CHECKSIG <LicKeyHash> OP_DEREG EQUAL
+// Sign the license key
+<LicKeyHash> <sig> <LicPubKey> --> DUP HASH160 <LicKeyHash> EQUALVERIFY CHECKSIG <AgreementHash> OP_SIG EQUAL
+// Unsign the license key
+<AgreementHash> <sig> <LicPubKey> --> DUP HASH160 <LicKeyHash> EQUALVERIFY CHECKSIG <AgreementHash> OP_UNSIG EQUAL
+
+// Register a license key
+<sig> <LicRegPayerPubKey> --> DUP HASH160 <LicKeyHash> EQUALVERIFY CHECKSIG OP_REG LicKeyHash "lic/cloud_svc_key" "meta_data" OP_2DROP EQUALVERIFY OP_DROP //additional output to pay for registration?
+// Sign the license agreement with the license key
+<LicKeyHash> <sig> <LicPubKey> --> DUP HASH160 <LicKeyHash> EQUALVERIFY CHECKSIG OP_SIG <LICHASH> EQUALVERIFY OP_DROP //<EXPIRATION>, additional output to pay for signing the agreement?
+// Unsign the agreement/return the license key
+<LICHASH> <sig> <LicPubKey> --> DUP HASH160 <LicKeyHash> EQUALVERFIY CHECKSIG OP_RET_SIG <LICHASH> ??? // Should it be possible, lic key owner has commitments to the crown network
+
+// ******** Alt Sign the license agreement with the license key, register a signature
+<LicKeyHash> <sig> <LicPubKey> --> DUP HASH160 <LicKeyHash> EQUALVERIFY CHECKSIG OP_SIG <LICHASH> EQUALVERIFY <DUP> <HASH160> <LicSigPubKeyHash> EQUALVERIFY <LicHashSig> OP_SWAP CHECK_SIG
+// Next sigScript input
+<LicSigPubKey> <LICHASH> <sig> <LicKey>
+// Redemption full script
+<LicSigPubKey> <LICHASH> <sig> <LicKey> DUP HASH160 <LicKeyHash> EQUALVERIFY CHECKSIG OP_SIG <LICHASH> EQUALVERIFY <DUP> <HASH160> <LicSigPubKeyHash> EQUALVERIFY <LicHashSig> OP_SWAP CHECK_SIG
+
+
+
+// Register a service
+<sig> <ServiceOwnerKey> --> DUP HASH160 <ServiceKeyHash> EQUALVERIFY CHECKSIG OP_REG ServiceKeyHash "svc/my_cloud_svc" "meta_data" OP_2DROP EQUALVERIFY OP_DROP //pay for svc reg
+// Sign service key with the license key
+<LICHASH> <sig> <LicPubKey> --> DUP HASH160 <LicKeyHash> EQUALVERIFY CHECKSIG OP_SIG ServiceKeyHash EQUALVERIFY OP_DROP
+// Unsign the service key/return
+<ServiceKeyHash> <sig> <LicPubKey> --> DUP HASH160 <LicKeyHash> EQUALVERIFY CHECKSIG OP_RET_SIG ServiceKeyHash EQUALVERIFY OP_DROP
+
+// Subscribe for a service
+<sig> <UserPubKey> --> DUP HASH160 <LicKeyHash> EQUALVERIFY CHECKSIG // payment for using masternode resources, 20% for example
+                   --> DUP HASH160 <ServiceKeyHash> EQUALVERIFY CHECKSIG // payment for the service, 80% for example
+
+// Subscribe for a service, escrow
+ <sig> <UserPubKey> --> DUP HASH160 <LicKeyHash> EQUALVERIFY CHECKSIG // payment for using masternode resources, 20% for example
+                    --> MULTISIG (ServiceKeyHash, UserPubKeyHash, ArbitratorKeyHash) 2-of-3 // payment for the service, 80% for example
+
+// Sign a contract between the service key and the license key
+<LicKeyHash> <sig> <LicPubKey> -->
+<ServiceKeyHash> <sig> <ServicePubKey> --> MULTISIG (lic, svc, arb) 2-of-3 OP_SIG ServiceKeyHash EQUALVERIFY OP_DROP
+
+
+// Signing agreement between two parties
+in1: <LicKeyHash> <sigLic> <LicPubKey> -->
+in2: <ServiceKeyHash> <sigService> <ServicePubKey> --> MULTISIG (lic, svc, arb) 2-of-3 .. OP_SIG LICHASH //<EXPIRATION>
+
+// Reason to add another OP_CODE OP_SIG. To sign a service key by the public key for example, the key needs signing must be in the pubKey script. If we will be using the key for the payment,
+// the owner of this signing is the service key now. That's not what we want. Another reason is we may want to sign a hash, not hashed public key. In this case we don't have a private key,
+// so we need to have 2 entities: an owner address, and reg/sign key/address/hash.
+
+// Registrable/Signed outputs can be used multiple times as an input??
+
+
+
+// Register an identity registration agent agreement
+<sig> <LicAgrmntPayerPubKey> --> DUP HASH160 <LicAgrmntProviderPubKHash?> EQUALVERIFY CHECKSIG OP_REG LicAgentHash "agrmnt/id_agent_agrmnt" "meta_data" OP_2DROP EQUALVERIFY OP_DROP
+
+// Register an Identity Agent license key
+<sig> <IdentityAgentPayerPubKey> --> DUP HASH160 <IdentityAgentKeyHash> EQUALVERIFY CHECKSIG OP_REG IdentityAgentKeyHash "lic/identity_registration_key" "meta_data" OP_2DROP EQUALVERIFY OP_DROP //additional output to pay for registration?
+
+// Sign the license agreement for providing identity registration
+<IdentityAgentKeyHash> <sig> <IdentityAgentPubKey> --> DUP HASH160 <IdentityAgentKeyHash> EQUALVERIFY CHECKSIG OP_SIG LicAgentHash EQUALVERIFY OP_DROP //<EXPIRATION>, additional output to pay for signing the agreement?
+
+// Register an identity
+<LicAgentHash> <sig> <IdentityAgentKeyHash> --> MULTISIG (IdentityAgentKeyHash, NewIdentityKeyHash) 1-of-2 OP_REG NewIdentityKeyHash "id/new_id" "meta_data" OP_2DROP EQUALVERIFY OP_DROP
+                                            --> DUP HASH160 <IdentityAgentKeyHash> EQUALVERIFY CHECKSIG
+
+
+// Transaction output contains target address to send money to, registration hash (if it's key's hash it must be the same as the target address)
+// Transaction output contains only registration hash
+// How to get rid of numeric 'token' but keep the system secure and incentivized?
+// Verify-but-not-spend output
+// If OP_REG - owner-key of the new registered key and and the registered key must be the same
